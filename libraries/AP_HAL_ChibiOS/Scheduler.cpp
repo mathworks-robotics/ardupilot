@@ -49,6 +49,9 @@
 #include "hwdef/common/flash.h"
 #include "hwdef/common/watchdog.h"
 #include <AP_Filesystem/AP_Filesystem.h>
+#if AP_CRASHDUMP_FATFS_ENABLED
+#include "CrashDump.h"
+#endif
 #include "shared_dma.h"
 #include <AP_Common/ExpandingString.h>
 #include <GCS_MAVLink/GCS.h>
@@ -59,10 +62,6 @@ extern AP_IOMCU iomcu;
 #endif
 
 using namespace ChibiOS;
-
-#ifndef HAL_RCIN_THREAD_ENABLED
-#define HAL_RCIN_THREAD_ENABLED 1
-#endif
 
 #ifndef HAL_MONITOR_THREAD_ENABLED
 #define HAL_MONITOR_THREAD_ENABLED 1
@@ -566,13 +565,16 @@ void Scheduler::_io_thread(void* arg)
 #if CH_DBG_ENABLE_STACK_CHECK == TRUE
     uint32_t last_stack_check_ms = 0;
 #endif
+#if AP_CRASHDUMP_FATFS_ENABLED
+    uint32_t last_crashdump_check_ms = 0;
+#endif
     while (true) {
         sched->delay_microseconds(1000);
 
         // run registered IO processes
         sched->_run_io();
 
-#if HAL_LOGGING_ENABLED || CH_DBG_ENABLE_STACK_CHECK == TRUE
+#if HAL_LOGGING_ENABLED || CH_DBG_ENABLE_STACK_CHECK == TRUE || AP_CRASHDUMP_FATFS_ENABLED
         uint32_t now = AP_HAL::millis();
 #endif
 
@@ -592,6 +594,12 @@ void Scheduler::_io_thread(void* arg)
             sched->check_stack_free();
         }
 #endif
+#if AP_CRASHDUMP_FATFS_ENABLED
+        if (now - last_crashdump_check_ms > 1000) {
+            last_crashdump_check_ms = now;
+            crashdump_sd_update();
+        }
+#endif
     }
 }
 
@@ -603,25 +611,15 @@ void Scheduler::_io_thread(void* arg)
  */
 void Scheduler::check_low_memory_is_zero()
 {
-    const uint32_t *lowmem = nullptr;
-    // we start at address 0x1 as reading address zero causes a fault
-    for (uint16_t i=1; i<256; i++) {
-        if (lowmem[i] != 0) {
+    for (int addr=0; addr<1024; addr+=4) {
+        uint32_t val;
+        // read using assembly so we don't invoke UB dereferencing nullptr
+        __asm__("\tldr %0, [%1]\n\t" : "=r"(val) : "r"(addr));
+        if (val != 0) {
             // re-use memory guard internal error
             AP_memory_guard_error(1023);
             break;
         }
-    }
-    // we can't do address 0, but can check next 3 bytes
-    const uint8_t *addr0 = (const uint8_t *)0;
-    for (uint8_t i=1; i<4; i++) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Warray-bounds"
-        if (addr0[i] != 0) {
-            AP_memory_guard_error(1023);
-            break;
-        }
-#pragma GCC diagnostic pop
     }
 }
 #endif // MEMCHECK_ENABLED

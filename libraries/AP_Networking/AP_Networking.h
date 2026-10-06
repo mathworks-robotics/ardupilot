@@ -28,6 +28,7 @@ public:
     friend class AP_Networking_Backend;
     friend class AP_Networking_ChibiOS;
     friend class AP_Networking_PPP;
+    friend class AP_Networking_SITL_TUN;
     friend class AP_Vehicle;
     friend class Networking_Periph;
 
@@ -147,6 +148,13 @@ public:
     static uint32_t convert_netmask_bitcount_to_ip(const uint32_t netmask_bitcount);
     static uint8_t convert_netmask_ip_to_bitcount(const uint32_t netmask_ip);
 
+    // add new routes for an interface.
+    // Returns true if the route is added or the route already exists
+    bool add_route(uint8_t backend_idx, uint8_t iface_idx, uint32_t dest_ip, uint8_t mask_len);
+
+    // hook for custom routes
+    struct netif *routing_hook(uint32_t dest);
+
     /*
       send contents of a file to a socket then close both socket and file
      */
@@ -163,6 +171,11 @@ public:
         CAN1_MCAST_BRIDGED=(1U<<3),
         CAN2_MCAST_BRIDGED=(1U<<4),
 #endif
+#endif
+        PPP_TIMEOUT_DISABLE=(1U<<5),
+        PPP_ECHO_LIMIT_DISABLE=(1U<<6),
+#if AP_NETWORKING_CAPTURE_ENABLED
+        CAPTURE_PACKETS=(1U<<7),
 #endif
     };
     bool option_is_set(OPTION option) const {
@@ -231,7 +244,8 @@ private:
         Port() {}
 
         static const struct AP_Param::GroupInfo var_info[];
-        AP_Enum<NetworkPortType> type;
+        AP_Enum<NetworkPortType> type_param;
+        NetworkPortType type;
         AP_Networking_IPV4 ip {"0.0.0.0"};
         AP_Int32 port;
         SocketAPM *sock;
@@ -242,6 +256,9 @@ private:
         }
         bool tx_pending() override {
             return false;
+        }
+        bool is_network_port() const override {
+            return true;
         }
 
         void udp_client_init(void);
@@ -259,6 +276,13 @@ private:
     private:
         bool init_buffers(const uint32_t size_rx, const uint32_t size_tx);
         void thread_create(AP_HAL::MemberProc);
+
+        // true if addr (host byte order, as returned by AP_Networking_IPV4::get_uint32()
+        // or SocketAPM::last_recv_address()) is the broadcast or a multicast address
+        static bool is_broadcast_or_multicast(uint32_t addr) {
+            const uint8_t first_octet = (addr >> 24) & 0xFF;
+            return addr == 0xFFFFFFFF || (first_octet >= 224 && first_octet <= 239);
+        }
 
         uint32_t txspace() override;
         void _begin(uint32_t b, uint16_t rxS, uint16_t txS) override;
@@ -282,6 +306,7 @@ private:
         uint32_t last_size_rx;
         bool packetise;
         bool connected;
+        bool is_udp_client_unicast;  // only meaningful when type == UDP_CLIENT, set in udp_client_loop()
         uint32_t last_udp_connect_address;
         uint16_t last_udp_connect_port;
         bool have_received;

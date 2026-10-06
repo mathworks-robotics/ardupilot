@@ -80,13 +80,17 @@ float AP_ESC_Telem::get_average_motor_rpm(uint32_t servo_channel_mask) const
     return rpm_avg;
 }
 
-// return all the motor frequencies in Hz for dynamic filtering
-uint8_t AP_ESC_Telem::get_motor_frequencies_hz(uint8_t nfreqs, float* freqs) const
+// return motor frequencies selected in mask in Hz for dynamic filtering
+uint8_t AP_ESC_Telem::get_motor_frequencies_hz(uint8_t nfreqs, float* freqs, uint32_t servo_channel_mask) const
 {
     uint8_t valid_escs = 0;
 
     // average the rpm of each motor as reported by BLHeli and convert to Hz
     for (uint8_t i = 0; i < ESC_TELEM_MAX_ESCS && valid_escs < nfreqs; i++) {
+        if (!BIT_IS_SET(servo_channel_mask, i)) {
+            // Skip ESCs not enabled in mask
+            continue;
+        }
         float rpm;
         if (get_rpm(i, rpm)) {
             freqs[valid_escs++] = rpm * (1.0f / 60.0f);
@@ -210,7 +214,7 @@ bool AP_ESC_Telem::get_rpm(uint8_t esc_index, float& rpm) const
 }
 
 // get an individual ESC's raw rpm if available, returns true on success
-bool AP_ESC_Telem::get_raw_rpm(uint8_t esc_index, float& rpm) const
+bool AP_ESC_Telem::get_raw_rpm_and_error_rate(uint8_t esc_index, float& rpm, float& error_rate) const
 {
     if (esc_index >= ESC_TELEM_MAX_ESCS) {
         return false;
@@ -223,6 +227,7 @@ bool AP_ESC_Telem::get_raw_rpm(uint8_t esc_index, float& rpm) const
     }
 
     rpm = rpmdata.rpm;
+    error_rate = rpmdata.error_rate;
     return true;
 }
 
@@ -451,7 +456,8 @@ void AP_ESC_Telem::send_esc_telemetry_mavlink(uint8_t mav_chan)
             s.totalcurrent[j] = constrain_float(telemdata.consumption_mah, 0, UINT16_MAX);
             float rpmf;
             if (get_rpm(esc_id, rpmf)) {
-                s.rpm[j] = constrain_float(rpmf, 0, UINT16_MAX);
+                // rpm can be negative
+                s.rpm[j] = constrain_float(fabsf(rpmf), 0, UINT16_MAX);
             }
             s.count[j] = telemdata.count;
         }
@@ -684,10 +690,11 @@ void AP_ESC_Telem::update()
                 _last_telem_log_ms[i] = telemdata.last_update_ms;
                 _last_rpm_log_us[i] = rpmdata.last_update_us;
 
-                float rpm = AP::logger().quiet_nanf();
+                float rpm = AP_Logger::quiet_nanf();
                 get_rpm(i, rpm);
-                float raw_rpm = AP::logger().quiet_nanf();
-                get_raw_rpm(i, raw_rpm);
+                float raw_rpm = AP_Logger::quiet_nanf();
+                float rpm_error_rate = AP_Logger::quiet_nanf();
+                get_raw_rpm_and_error_rate(i, raw_rpm, rpm_error_rate);
 
                 // Write ESC status messages
                 //   id starts from 0
@@ -709,7 +716,7 @@ void AP_ESC_Telem::update()
                     esc_temp    : telemdata.temperature_cdeg,
                     current_tot : telemdata.consumption_mah,
                     motor_temp  : telemdata.motor_temp_cdeg,
-                    error_rate  : rpmdata.error_rate
+                    error_rate  : rpm_error_rate
                 };
                 AP::logger().WriteBlock(&pkt, sizeof(pkt));
 

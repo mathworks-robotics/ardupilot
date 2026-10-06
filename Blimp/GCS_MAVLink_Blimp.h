@@ -20,15 +20,11 @@ protected:
 
     MAV_RESULT _handle_command_preflight_calibration(const mavlink_command_int_t &packet, const mavlink_message_t &msg) override;
 
-    void send_position_target_global_int() override;
+    bool get_target_location(Location &loc) const override;
 
     MAV_RESULT handle_command_do_set_roi(const Location &roi_loc) override;
     MAV_RESULT handle_command_int_packet(const mavlink_command_int_t &packet, const mavlink_message_t &msg) override;
     MAV_RESULT handle_command_int_do_reposition(const mavlink_command_int_t &packet);
-
-#if AP_MAVLINK_COMMAND_LONG_ENABLED
-    bool mav_frame_for_command_long(MAV_FRAME &frame, MAV_CMD packet_command) const override;
-#endif
 
     void send_nav_controller_output() const override; //TODO Apparently can't remove this or the build fails.
     uint64_t capabilities() const override;
@@ -66,7 +62,8 @@ private:
 
     void send_wind() const;
 
-    //This is 1-indexed, unlike most enums for consistency with the mavlink PID_TUNING enums.
+    // Internal bitmask indices for gcs_pid_mask (1-indexed, sequential).
+    // These do not correspond to MAVLink PID_TUNING_AXIS values.
     enum PID_SEND : uint8_t {
         VELX =        1,
         VELY =        2,

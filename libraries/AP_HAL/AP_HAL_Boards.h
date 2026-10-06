@@ -28,7 +28,7 @@
 #define HAL_BOARD_SUBTYPE_LINUX_ERLEBOARD  1001
 #define HAL_BOARD_SUBTYPE_LINUX_PXF        1002
 #define HAL_BOARD_SUBTYPE_LINUX_NAVIO      1003
-#define HAL_BOARD_SUBTYPE_LINUX_ZYNQ       1004
+// #define HAL_BOARD_SUBTYPE_LINUX_ZYNQ       1004
 #define HAL_BOARD_SUBTYPE_LINUX_BBBMINI    1005
 #define HAL_BOARD_SUBTYPE_LINUX_BEBOP      1006
 #define HAL_BOARD_SUBTYPE_LINUX_ERLEBRAIN2 1009
@@ -39,42 +39,45 @@
 #define HAL_BOARD_SUBTYPE_LINUX_AERO       1015
 #define HAL_BOARD_SUBTYPE_LINUX_DARK       1016
 #define HAL_BOARD_SUBTYPE_LINUX_BLUE       1018
-#define HAL_BOARD_SUBTYPE_LINUX_OCPOC_ZYNQ 1019
+// #define HAL_BOARD_SUBTYPE_LINUX_OCPOC_ZYNQ 1019
 #define HAL_BOARD_SUBTYPE_LINUX_EDGE       1020
-#define HAL_BOARD_SUBTYPE_LINUX_RST_ZYNQ   1021
+// #define HAL_BOARD_SUBTYPE_LINUX_RST_ZYNQ   1021
 #define HAL_BOARD_SUBTYPE_LINUX_POCKET     1022
 #define HAL_BOARD_SUBTYPE_LINUX_NAVIGATOR  1023
 #define HAL_BOARD_SUBTYPE_LINUX_VNAV       1024
 #define HAL_BOARD_SUBTYPE_LINUX_OBAL_V1    1025
 #define HAL_BOARD_SUBTYPE_LINUX_CANZERO    1026
+#define HAL_BOARD_SUBTYPE_LINUX_PILOTPI    1027
+#define HAL_BOARD_SUBTYPE_LINUX_POCKET2    1028
+#define HAL_BOARD_SUBTYPE_LINUX_T3_GEM_O1  1029
+#define HAL_BOARD_SUBTYPE_LINUX_RSAXVC_V1  1030
+#define HAL_BOARD_SUBTYPE_LINUX_RPI        1031
 
 /* HAL CHIBIOS sub-types, starting at 5000
 
-   NOTE!! Do not add more subtypes unless they are really needed. Most
-   boards do not need a subtype defined. It is only needed if we need
-   to use #ifdef'd code to change behaviour
+   NOTE!! Do not add more subtypes.  They are no longer needed.
 */
-#define HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412	5000
-#define HAL_BOARD_SUBTYPE_CHIBIOS_FMUV3         5001
+// #define HAL_BOARD_SUBTYPE_CHIBIOS_SKYVIPER_F412	5000
+// #define HAL_BOARD_SUBTYPE_CHIBIOS_FMUV3         5001
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_FMUV4         5002
-#define HAL_BOARD_SUBTYPE_CHIBIOS_GENERIC       5009
-#define HAL_BOARD_SUBTYPE_CHIBIOS_FMUV5         5013
+// #define HAL_BOARD_SUBTYPE_CHIBIOS_GENERIC       5009
+// #define HAL_BOARD_SUBTYPE_CHIBIOS_FMUV5         5013
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_VRBRAIN_V51   5016
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_VRBRAIN_V52   5017
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_VRUBRAIN_V51  5018
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_VRCORE_V10    5019
 // #define HAL_BOARD_SUBTYPE_CHIBIOS_VRBRAIN_V54   5020
 
-#define HAL_BOARD_SUBTYPE_ESP32_DIY             6001
-#define HAL_BOARD_SUBTYPE_ESP32_ICARUS          6002
-#define HAL_BOARD_SUBTYPE_ESP32_BUZZ            6003
-#define HAL_BOARD_SUBTYPE_ESP32_EMPTY           6004
-#define HAL_BOARD_SUBTYPE_ESP32_TOMTE76         6005
-#define HAL_BOARD_SUBTYPE_ESP32_NICK            6006
-#define HAL_BOARD_SUBTYPE_ESP32_S3DEVKIT        6007
-#define HAL_BOARD_SUBTYPE_ESP32_S3EMPTY         6008
-#define HAL_BOARD_SUBTYPE_ESP32_S3M5STAMPFLY    6009
-#define HAL_BOARD_SUBTYPE_ESP32_IMU_MODULE_V11  6010
+// #define HAL_BOARD_SUBTYPE_ESP32_DIY             6001
+// #define HAL_BOARD_SUBTYPE_ESP32_ICARUS          6002
+// #define HAL_BOARD_SUBTYPE_ESP32_BUZZ            6003
+// #define HAL_BOARD_SUBTYPE_ESP32_EMPTY           6004
+// #define HAL_BOARD_SUBTYPE_ESP32_TOMTE76         6005
+// #define HAL_BOARD_SUBTYPE_ESP32_NICK            6006
+// #define HAL_BOARD_SUBTYPE_ESP32_S3DEVKIT        6007
+// #define HAL_BOARD_SUBTYPE_ESP32_S3EMPTY         6008
+// #define HAL_BOARD_SUBTYPE_ESP32_S3M5STAMPFLY    6009
+// #define HAL_BOARD_SUBTYPE_ESP32_IMU_MODULE_V11  6010
 // @LoggerEnumEnd
 
 /* InertialSensor driver types */
@@ -89,13 +92,6 @@
 #define HAL_INS_INV2_I2C    24
 #define HAL_INS_INV2_SPI    25
 
-
-/* Barometer driver types */
-#define HAL_BARO_NONE        0
-#define HAL_BARO_HIL_UNUSED  6  // unused
-#define HAL_BARO_20789_I2C_I2C  14
-#define HAL_BARO_20789_I2C_SPI  15
-#define HAL_BARO_LPS25H_IMU_I2C 17
 
 /* Heat Types */
 #define HAL_LINUX_HEAT_PWM 1
@@ -232,6 +228,10 @@
 #define HAL_OS_LITTLEFS_IO 0
 #endif
 
+#ifndef AP_REBOOT_MASS_STORAGE_ENABLED
+#define AP_REBOOT_MASS_STORAGE_ENABLED 0
+#endif
+
 #ifndef HAL_BARO_DEFAULT
 #define HAL_BARO_DEFAULT HAL_BARO_NONE
 #endif
@@ -286,10 +286,6 @@
 #endif
 #endif
 
-#ifndef USE_LIBC_REALLOC
-#define USE_LIBC_REALLOC 1
-#endif
-
 #ifndef AP_HAL_SHARED_DMA_ENABLED
 #define AP_HAL_SHARED_DMA_ENABLED 1
 #endif
@@ -338,19 +334,19 @@
 // On an F7 The difference in CPU load between 1 notch and 24 notches is about 2%
 // The difference in CPU load between 1Khz backend and 2Khz backend is about 10%
 // So at 1Khz almost all notch combinations can be supported on F7 and certainly H7
-#if defined(STM32H7) || CONFIG_HAL_BOARD == HAL_BOARD_SITL
+#if defined(STM32H7) || CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_LINUX
 // Enough for a double-notch per motor on an octa using three IMUs and one harmonics
 // plus one static notch with one double-notch harmonics
-#define HAL_HNF_MAX_FILTERS 54
+#define HAL_HNF_MAX_FILTERS 78
 #elif defined(STM32F7)
 // Enough for a notch per motor on an octa using three IMUs and one harmonics
 // plus one static notch with one harmonics
-#define HAL_HNF_MAX_FILTERS 27
+#define HAL_HNF_MAX_FILTERS 39
 #else
 // Enough for a notch per motor on an octa quad using two IMUs and one harmonic
 // plus one static notch with one harmonic
 // Or triple-notch per motor on one IMU with one harmonic
-#define HAL_HNF_MAX_FILTERS 24
+#define HAL_HNF_MAX_FILTERS 30
 #endif
 #endif // HAL_HNF_MAX_FILTERS
 
@@ -418,4 +414,8 @@
 
 #ifndef HAL_REBOOT_ON_MEMORY_ERRORS
 #define HAL_REBOOT_ON_MEMORY_ERRORS defined(IOMCU_FW)
+#endif
+
+#ifndef AP_CPU_IDLE_STATS_ENABLED
+#define AP_CPU_IDLE_STATS_ENABLED 0
 #endif

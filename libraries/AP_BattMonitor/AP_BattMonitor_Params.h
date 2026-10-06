@@ -43,6 +43,7 @@ public:
         Scripting                      = 29,
         INA3221                        = 30,
         ANALOG_CURRENT_ONLY            = 31,
+        TIBQ76952_I2C                  = 32,
     };
 
     // low voltage sources (used for BATT_LOW_TYPE parameter)
@@ -61,6 +62,7 @@ public:
         AllowSplitAuxInfo                   = (1U<<7),  // allow different node to provide aux info for DroneCAN
         InternalUseOnly                     = (1U<<8),  // for use internally to ArduPilot, not to be (eg.) sent via MAVLink BATTERY_STATUS
         Minimum_Voltage                     = (1U<<9),  // sum monitor measures minimum voltage rather than average
+        AllowDynamicNodeUpdate              = (1U<<10), // allow dynamic update of DroneCAN node ID during hot-swap when telemetry is lost
     };
 
     BattMonitor_LowVoltage_Source failsafe_voltage_source(void) const { return (enum BattMonitor_LowVoltage_Source)_failsafe_voltage_source.get(); }

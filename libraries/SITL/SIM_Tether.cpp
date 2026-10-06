@@ -57,7 +57,7 @@ const AP_Param::GroupInfo TetherSim::var_info[] = {
     // @Param: SYSID
     // @DisplayName: Tether Simulation MAVLink System ID
     // @Description: MAVLink system ID for the tether simulation, used to distinguish it from other systems on the network
-    // @Range: 0 255
+    // @Range: 0 4294967295
     // @User: Advanced
     AP_GROUPINFO("SYSID",   4, TetherSim,  sys_id, 2),
 
@@ -74,6 +74,13 @@ const AP_Param::GroupInfo TetherSim::var_info[] = {
     // @Range: 0 255
     // @User: Advanced
     AP_GROUPINFO("SPGCNST",   6, TetherSim,  tether_spring_constant, 100),
+
+    // @Param: DMPCNST
+    // @DisplayName: Tether Damping Constant
+    // @Description: Damping constant for the tether to simulate resistance based on change in stretch
+    // @Range: 0 255
+    // @User: Advanced
+    AP_GROUPINFO("DMPCNST",   7, TetherSim,  tether_damping_constant, 10),
 
     AP_GROUPEND
 };
@@ -168,7 +175,7 @@ void TetherSim::send_report(void)
 
         mavlink_message_t msg;
         mavlink_msg_heartbeat_encode_status(
-            sys_id.get(),
+            uint32_t(sys_id.get()),
             component_id,
             &mav_status,
             &msg,
@@ -199,7 +206,7 @@ void TetherSim::send_report(void)
             hdg: 0                              // heading in centi-degrees
         };
         mavlink_message_t msg;
-        mavlink_msg_global_position_int_encode_status(sys_id, component_id, &mav_status, &msg, &global_position_int);
+        mavlink_msg_global_position_int_encode_status(uint32_t(sys_id.get()), component_id, &mav_status, &msg, &global_position_int);
         uint8_t buf[300];
         const uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
         if (len > 0) {
@@ -266,33 +273,36 @@ void TetherSim::update_tether_force(const Location& veh_pos, float dt)
         // Calculate the stretch beyond the maximum length
         float stretch = MAX(tether_length - max_line_length, 0.0f);
 
-        // Apply a spring-like penalty force proportional to the stretch
-        float penalty_force_magnitude = tether_spring_constant * stretch;
+        // Calculate the stretch rate beyond the maximum length
+        float stretch_rate = (stretch - prev_stretch)/dt;
+
+        // Apply a spring and damping penalty force proportional to the stretch
+        float penalty_force_magnitude = tether_spring_constant * stretch + tether_damping_constant * stretch_rate;
 
         // Direction of force is along the tether, pulling toward the anchor
-        veh_forces_ef = tether_vector.normalized() * penalty_force_magnitude;
+        veh_forces_teth = tether_vector.normalized() * penalty_force_magnitude;
 
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Tether: Exceeded maximum length.");
+        prev_stretch = stretch;
 
-        return;
-    }
-
-    if (tether_stuck) {
+    } else if (tether_stuck) {
 
         // Calculate the stretch beyond the maximum length
         float stretch = MAX(tether_length - tether_not_stuck_length, 0.0f);
 
+        // Calculate the stretch rate beyond the maximum length
+        float stretch_rate = (stretch - prev_stretch)/dt;
+
         // Apply a spring-like penalty force proportional to the stretch
-        float penalty_force_magnitude = tether_spring_constant * stretch;
+        float penalty_force_magnitude = tether_spring_constant * stretch + tether_damping_constant * stretch_rate;
 
         // Direction of force is directly along the tether, towards the tether anchor point
-        veh_forces_ef = tether_vector.normalized() * penalty_force_magnitude;
+        veh_forces_teth = tether_vector.normalized() * penalty_force_magnitude;
 
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Tether: Stuck.");
+        prev_stretch = stretch;
 
-        return;
     } else {
         tether_not_stuck_length = tether_length;
+        veh_forces_teth.zero();
     }
 
     // Step 3: Calculate the weight of the tether being lifted
@@ -302,8 +312,8 @@ void TetherSim::update_tether_force(const Location& veh_pos, float dt)
     // Step 4: Calculate the tension force
     Vector3f tension_force_NED = tether_vector.normalized() * tether_weight_force;
 
-    // Step 5: Apply the force to the vehicle
-    veh_forces_ef = tension_force_NED;
+    // Step 5: Apply the total force to the vehicle
+    veh_forces_ef = veh_forces_teth + tension_force_NED;
 }
 
 #endif

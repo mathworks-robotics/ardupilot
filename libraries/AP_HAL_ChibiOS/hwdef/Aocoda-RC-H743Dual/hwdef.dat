@@ -129,6 +129,7 @@ define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_GPS
 PD8 USART3_TX USART3
 PD9 USART3_RX USART3
 define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_DJI_FPV
+define AP_MSP_VIDEOTX_ENABLED 1
 
 # UART4 (Telemetry), SERIAL4
 PB8 UART4_RX UART4
@@ -199,14 +200,13 @@ IMU BMI270 SPI:bmi270_1 ROTATION_ROLL_180_YAW_90
 IMU BMI270 SPI:bmi270_2 ROTATION_PITCH_180
 
 # DPS310 integrated on I2C2 bus, multiple possible choices for external barometer
-BARO MS56XX I2C:0:0x77
+BARO MS5611 I2C:0:0x77
 BARO DPS310 I2C:0:0x76
 BARO BMP280 I2C:0:0x76
 
 # no built-in compass, but probe the i2c bus for all possible
 # external compass types
-define ALLOW_ARM_NO_COMPASS
-define HAL_PROBE_EXTERNAL_I2C_COMPASSES
+define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 1
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 
@@ -217,3 +217,4 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 # enable logging to dataflash
 DATAFLASH littlefs:w25nxx
+define DEFAULT_NTF_LED_TYPES 455

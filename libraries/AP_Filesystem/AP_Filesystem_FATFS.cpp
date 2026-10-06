@@ -12,6 +12,7 @@
 #include <AP_Common/time.h>
 
 #include <ff.h>
+#include <AP_HAL_ChibiOS/CrashDump.h>
 #include <AP_HAL_ChibiOS/sdcard.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
@@ -30,9 +31,9 @@ static bool remount_needed;
 #define FATFS_W (S_IWUSR | S_IWGRP | S_IWOTH)	/*< FatFs Write perms */
 #define FATFS_X (S_IXUSR | S_IXGRP | S_IXOTH)	/*< FatFs Execute perms */
 
-// don't write more than 4k at a time to prevent needing too much
-// DMAable memory
-#define MAX_IO_SIZE 4096
+
+uint32_t AP_Filesystem_FATFS::io_size = AP_FATFS_MIN_IO_SIZE;
+
 
 // use a semaphore to ensure that only one filesystem operation is
 // happening at a time. A recursive semaphore is used to cope with the
@@ -342,7 +343,7 @@ int32_t AP_Filesystem_FATFS::read(int fd, void *buf, uint32_t count)
         UINT size = 0;
         UINT n = bytes;
         if (!mem_is_dma_safe(buf, count, true)) {
-            n = MIN(bytes, MAX_IO_SIZE);
+            n = MIN(bytes, io_size);
         }
         res = f_read(fh, (void *)buf, n, &size);
         if (res != FR_OK) {
@@ -387,7 +388,7 @@ int32_t AP_Filesystem_FATFS::write(int fd, const void *buf, uint32_t count)
     do {
         UINT n = bytes;
         if (!mem_is_dma_safe(buf, count, true)) {
-            n = MIN(bytes, MAX_IO_SIZE);
+            n = MIN(bytes, io_size);
         }
         UINT size = 0;
         res = f_write(fh, buf, n, &size);
@@ -655,7 +656,7 @@ struct dirent *AP_Filesystem_FATFS::readdir(void *dirp_void)
         errno = fatfs_to_errno((FRESULT)res);
         return nullptr;
     }
-    len = strlen(fno.fname);
+    len = MIN(strlen(fno.fname),sizeof(d->de.d_name)-1);
     strncpy_noterm(d->de.d_name,fno.fname,len);
     d->de.d_name[len] = 0;
     if (fno.fattrib & AM_DIR) {
@@ -700,7 +701,7 @@ uint32_t AP_Filesystem_FATFS::bytes_until_fsync(int fd)
         return 0; // return "any number", the write/fsync will fail anyway
     }
 
-    const uint32_t block_size = MAX_IO_SIZE;
+    const uint32_t block_size = io_size;
 
     uint32_t block_pos = fh->fptr % block_size;
     return block_size - block_pos;
@@ -839,6 +840,10 @@ void AP_Filesystem_FATFS::format_handler(void)
     if (buf == nullptr) {
         return;
     }
+#if AP_CRASHDUMP_FATFS_ENABLED
+    // The cached sector map becomes unsafe as soon as formatting starts.
+    crashdump_sd_invalidate();
+#endif
     // format first disk
     auto ret = f_mkfs("0:", 0, buf, FF_MAX_SS);
     hal.util->free_type(buf, FF_MAX_SS, AP_HAL::Util::MEM_DMA_SAFE);

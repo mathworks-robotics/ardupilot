@@ -16,9 +16,11 @@
   simulator connector for XPlane
 */
 
-#include "SIM_XPlane.h"
+#include "SIM_config.h"
 
-#if HAL_SIM_XPLANE_ENABLED
+#if AP_SIM_XPLANE_ENABLED
+
+#include "SIM_XPlane.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -647,7 +649,7 @@ void XPlane::send_dref(const char *name, float value)
         char name[500];
     } d {};
     d.value = value;
-    strcpy(d.name, name);
+    strncpy(d.name, name, sizeof(d.name)-1);
     socket_out.send(&d, sizeof(d));
     if (dref_debug > 0) {
         ::printf("-> %s : %.3f\n", name, value);
@@ -667,7 +669,7 @@ void XPlane::request_dref(const char *name, uint8_t code, uint32_t rate)
     } d {};
     d.rate_hz = rate;
     d.code = code; // given back in responses
-    strcpy(d.name, name);
+    strncpy(d.name, name, sizeof(d.name)-1);
     socket_in.sendto(&d, sizeof(d), xplane_ip, xplane_port);
 }
 
@@ -684,6 +686,8 @@ void XPlane::update(const struct sitl_input &input)
     if (receive_data()) {
         send_drefs(input);
     }
+
+    update_battery();
 
     uint32_t now = AP_HAL::millis();
     if (report.last_report_ms == 0) {
@@ -702,4 +706,4 @@ void XPlane::update(const struct sitl_input &input)
     check_reload_dref();
 }
 
-#endif  // HAL_SIM_XPLANE_ENABLED
+#endif  // AP_SIM_XPLANE_ENABLED

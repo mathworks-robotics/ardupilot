@@ -51,13 +51,13 @@ const AP_Param::GroupInfo AP_RunCam::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BT_DELAY", 3, AP_RunCam, _boot_delay_ms, 7000),
 
-    // @Param: BTN_DELAY
+    // @Param: BTN_DELY
     // @DisplayName: RunCam button delay before allowing further button presses
     // @Description: Time it takes for the a RunCam button press to be actived in ms. If this is too short then commands can get out of sync.
     // @User: Advanced
     AP_GROUPINFO("BTN_DELY", 4, AP_RunCam, _button_delay_ms, RUNCAM_DEFAULT_BUTTON_PRESS_DELAY),
 
-    // @Param: MDE_DELAY
+    // @Param: MDE_DELY
     // @DisplayName: RunCam mode delay before allowing further button presses
     // @Description: Time it takes for the a RunCam mode button press to be actived in ms. If a mode change first requires a video recording change then double this value is used. If this is too short then commands can get out of sync.
     // @User: Advanced
@@ -969,11 +969,11 @@ void AP_RunCam::parse_device_info(const Request& request)
     }
     if (_features > 0) {
         _state = State::INITIALIZED;
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "RunCam initialized, features 0x%04X, %d-key OSD\n", _features.get(),
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "RunCam initialized, features 0x%04X, %d-key OSD", _features.get(),
             has_5_key_OSD() ? 5 : has_2_key_OSD() ? 2 : 0);
     } else {
         // nothing as as nothing does
-        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "RunCam device not found\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "RunCam device not found");
     }
     debug("RunCam: initialized state: video: %d, osd: %d, cam: %d\n", int(_video_recording), int(_osd_option), int(_cam_control_option));
 }
@@ -1129,7 +1129,8 @@ void AP_RunCam::send_camera_information(mavlink_channel_t chan) const
         flags,                  // flags uint32_t (CAMERA_CAP_FLAGS)
         0,                      // cam_definition_version uint16_t
         cam_definition_uri,     // cam_definition_uri char[140]
-        _instance + 1);         // gimbal_device_id uint8_t
+        _instance + 1,          // gimbal_device_id uint8_t
+        _instance + 1);         // camera_device_id uint8_t
 }
 
 // send camera settings message to GCS
@@ -1146,7 +1147,8 @@ void AP_RunCam::send_camera_settings(mavlink_channel_t chan) const
         AP_HAL::millis(),   // time_boot_ms
         _video_recording == VideoOption::RECORDING ? CAMERA_MODE_VIDEO : CAMERA_MODE_IMAGE, // camera mode (0:image, 1:video, 2:image survey)
         NaNf,         // zoomLevel float, percentage from 0 to 100, NaN if unknown
-        NaNf);              // focusLevel float, percentage from 0 to 100, NaN if unknown
+        NaNf,               // focusLevel float, percentage from 0 to 100, NaN if unknown
+        _instance + 1);     // camera_device_id
 }
 
 AP_RunCam *AP::runcam() {

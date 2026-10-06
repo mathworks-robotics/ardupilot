@@ -38,7 +38,10 @@ if [ ! $IS_BENTO ]; then
 fi
 
 DASHDASHLOGIN=""
-if [ ${DISTRIBUTION_CODENAME} == 'oracular' ]; then
+if false ||
+     [ ${DISTRIBUTION_CODENAME} != 'jammy' ] &&
+     [ ${DISTRIBUTION_CODENAME} != 'noble' ] ||
+     false; then
     # we run out of space in tmpfs /tmp while compiling wxpython, so
     # do it elsewhere:
 cat <<"EOF" | sudo -H -u vagrant bash
@@ -59,6 +62,9 @@ apt-get install -y valgrind
 
 # gdb support:
 apt-get install -y gdb
+
+# X forwarding support; resolute started to need this
+apt-get install -y xauth
 
 sudo -u $VAGRANT_USER ln -fs /vagrant/Tools/vagrant/screenrc /home/$VAGRANT_USER/.screenrc
 

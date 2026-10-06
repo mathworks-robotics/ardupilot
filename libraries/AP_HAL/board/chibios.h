@@ -30,6 +30,14 @@
 #define HAL_PROGRAM_SIZE_LIMIT_KB (BOARD_FLASH_SIZE+EXT_FLASH_SIZE_MB*1024)
 #endif
 
+#ifndef AP_REBOOT_MASS_STORAGE_ENABLED
+#if HAL_PROGRAM_SIZE_LIMIT_KB >= 2048
+#define AP_REBOOT_MASS_STORAGE_ENABLED 1
+#else
+#define AP_REBOOT_MASS_STORAGE_ENABLED 0
+#endif
+#endif
+
 #ifndef HAL_NUM_CAN_IFACES
 #define HAL_NUM_CAN_IFACES 0
 #endif
@@ -106,9 +114,18 @@
 #define CHIBIOS_SHORT_BOARD_NAME CHIBIOS_BOARD_NAME
 #endif
 
-#ifndef CONFIG_HAL_BOARD_SUBTYPE
-// allow for generic boards
-#define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_GENERIC
+#define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_NONE
+
+// note the compatability code here which only defaults the thread
+// enabled if AP_RCProtocol is enabled.  This is to prevent hwdefs
+// being merged enabling the thread when it is not needed.  It should
+// be removed in the future.
+#ifndef HAL_RCIN_THREAD_ENABLED
+#if defined(AP_RCPROTOCOL_ENABLED) && !AP_RCPROTOCOL_ENABLED
+#define HAL_RCIN_THREAD_ENABLED 0
+#else
+#define HAL_RCIN_THREAD_ENABLED 1
+#endif
 #endif
 
 // we support RC serial for BLHeli pass-thru
@@ -175,3 +192,18 @@
 #ifndef AP_BOARDCONFIG_MCU_MEMPROTECT_ENABLED
 #define AP_BOARDCONFIG_MCU_MEMPROTECT_ENABLED 0
 #endif  // AP_BOARDCONFIG_MCU_MEMPROTECT_ENABLED
+
+#ifndef AP_CPU_IDLE_STATS_ENABLED
+#define AP_CPU_IDLE_STATS_ENABLED HAL_PROGRAM_SIZE_LIMIT_KB > 1024
+#endif
+
+#if defined(STM32H7) && HAL_MEM_CLASS >= HAL_MEM_CLASS_1000
+// 32k gives huge performance improvements on boards that can cope
+// the memory check excludes things like STM32H750 and STM32H730
+#ifndef AP_FATFS_MAX_IO_SIZE
+#define AP_FATFS_MAX_IO_SIZE 32768
+#endif
+#ifndef AP_FATFS_MIN_IO_SIZE
+#define AP_FATFS_MIN_IO_SIZE 4096
+#endif
+#endif

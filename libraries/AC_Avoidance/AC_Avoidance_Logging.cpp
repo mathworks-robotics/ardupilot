@@ -16,11 +16,11 @@ void AP_OABendyRuler::Write_OABendyRuler(const uint8_t type, const bool active, 
 
     float oa_dest_alt;
     if (!oa_dest.get_alt_m(Location::AltFrame::ABOVE_ORIGIN, oa_dest_alt)) {
-        oa_dest_alt = logger.quiet_nanf();
+        oa_dest_alt = AP_Logger::quiet_nanf();
     }
     float final_alt;
     if (!final_dest.get_alt_m(Location::AltFrame::ABOVE_ORIGIN, final_alt)) {
-        final_alt = logger.quiet_nanf();
+        final_alt = AP_Logger::quiet_nanf();
     }
 
     const struct log_OABendyRuler pkt{
@@ -29,7 +29,7 @@ void AP_OABendyRuler::Write_OABendyRuler(const uint8_t type, const bool active, 
         type        : type,
         active      : active,
         target_yaw  : (uint16_t)wrap_360(target_yaw),
-        yaw         : (uint16_t)wrap_360(AP::ahrs().yaw_sensor * 0.01f),
+        yaw         : (uint16_t)wrap_360(AP::ahrs().get_yaw_deg()),
         target_pitch: (uint16_t)target_pitch,
         resist_chg  : resist_chg,
         margin      : margin,

@@ -1,9 +1,16 @@
 #pragma once
 
+#include <hwdef.h>
+
 #define HAL_BOARD_NAME "SITL"
 #define HAL_CPU_CLASS HAL_CPU_CLASS_1000
 #define HAL_MEM_CLASS HAL_MEM_CLASS_1000
 #define HAL_OS_SOCKETS 1
+
+// build AP_BLHeli for the SERVO_BLH_* params; passthrough is unsupported here
+#ifndef HAL_SUPPORT_RCOUT_SERIAL
+#define HAL_SUPPORT_RCOUT_SERIAL 1
+#endif
 
 #define AP_FLASHSTORAGE_TYPE 3
 
@@ -42,7 +49,6 @@
 #define HAL_BOARD_TERRAIN_DIRECTORY "terrain"
 #define HAL_PARAM_DEFAULTS_PATH nullptr
 #define HAL_INS_DEFAULT HAL_INS_NONE
-#define HAL_BARO_DEFAULT HAL_BARO_NONE
 
 // simulated LEDs are disabled by default as they lead to a large
 // amount of SIM_GPIO_MASK mavlink traffic
@@ -87,6 +93,10 @@
 #define HAL_CAN_DRIVER_DEFAULT 0
 #endif
 
+#ifndef HAL_SITL_WASM_ENABLED
+#define HAL_SITL_WASM_ENABLED 0
+#endif
+
 #ifndef AP_UART_MONITOR_ENABLED
 #define AP_UART_MONITOR_ENABLED 1
 #endif
@@ -111,6 +121,10 @@
 
 #ifndef AP_NOTIFY_BUZZER_ENABLED
 #define AP_NOTIFY_BUZZER_ENABLED 1
+#endif
+
+#ifndef AP_AHRS_EKF_RESET_ENABLED
+#define AP_AHRS_EKF_RESET_ENABLED 1
 #endif
 
 #define HAL_BATT_VOLT_PIN                  13
